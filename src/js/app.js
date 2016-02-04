@@ -127,6 +127,8 @@ export class App extends React.Component {
   componentDidMount() {
     window.app = this;
 
+    let c = ReactDOM.findDOMNode(this.refs.camera);
+
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
     window.addEventListener('keyup', this.handleKeyUp.bind(this));
 
@@ -175,6 +177,13 @@ export class App extends React.Component {
     this.millis = Date.now();
     let dt_seconds = (this.millis - prevMillis) / 1000;
 
+    let c = ReactDOM.findDOMNode(this.refs.camera);
+    const p = c.components.camera.camera.getWorldPosition();
+    const d = c.components.camera.camera.getWorldDirection();
+    const ray = new THREE.Ray(p, d);
+    const plane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), this.state.arena.width / 2);
+    const paddleZ = ray.intersectPlane(plane).z;
+
     let {t, velocity, ball, paddle1, paddle2, arena, elevation, elevationVel, keys} = this.state;
     let {x, y, z, r, rotation} = ball;
 
@@ -206,12 +215,15 @@ export class App extends React.Component {
     const dPaddle = 10 * dt_seconds;
     if (keys[38] && paddle1.pos.z - paddle1.width/2 >= -arena.width/2) {
       this.state.paddle1.pos.z = paddle1.pos.z - dPaddle;
-      this.state.paddle2.pos.z = paddle2.pos.z + dPaddle;
+      //this.state.paddle2.pos.z = paddle2.pos.z + dPaddle;
     }
     if (keys[40] && paddle1.pos.z + paddle1.width/2 <= arena.width/2) {
       this.state.paddle1.pos.z = paddle1.pos.z + dPaddle;
-      this.state.paddle2.pos.z = paddle2.pos.z - dPaddle;
+      //this.state.paddle2.pos.z = paddle2.pos.z - dPaddle;
     }
+
+    const w = this.state.arena.width / 2;
+    this.state.paddle2.pos.z = THREE.Math.clamp(paddleZ, -w, w);
 
     //hit wall
     if (ball.z - ball.r < -arena.width/2) {
@@ -223,29 +235,26 @@ export class App extends React.Component {
 
     let out_of_arena = Math.abs(ball.x) > 23/2;
     if (out_of_arena) {
-      this.setState({
-        lightColor: "#0f0",
-        elevationVel: elevationVel + 0.07,
-        ball: {x: 0, y, z, r, rotation}
-      });
+      this.state.lightColor = "#0f0";
+      this.state.elevationVel += 0.07;
+      this.state.ball = {x: 0, y, z, r, rotation};
     } else {
       let out_of_bounds = Math.abs(ball.x) > arena.width/2;
       if (out_of_bounds) {
-        this.setState({ lightColor: "#f00" });
+        this.state.lightColor = "#f00";
       }
-      this.setState({
-        ball: {
-          x: x + dt_seconds * velocity.x,
-          y: y + dt_seconds * velocity.y,
-          z: z + dt_seconds * velocity.z,
-          r,
-          rotation: rotation + 360 * dt_seconds
-        },
-        t: t + dt_seconds,
-        velocity,
-        elevationVel: elevationVel * 0.95,
-        elevation: elevation + elevationVel
-      });
+
+      this.state.ball.x += dt_seconds * velocity.x;
+      this.state.ball.y += dt_seconds * velocity.y;
+      this.state.ball.z += dt_seconds * velocity.z;
+
+      this.state.ball.r = r;
+      this.state.ball.rotation += 360 * dt_seconds;
+
+      this.state.t += dt_seconds;
+      this.state.velocity = velocity;
+      this.state.elevationVel *= 0.95;
+      this.state.elevation += elevationVel;
     }
 
     this.forceUpdate();
@@ -258,8 +267,10 @@ export class App extends React.Component {
 
     return (
       <Scene onTick={this.tick}>
-        <Entity position={`0 ${elevation + 8} 10`}>
-          <Camera>{/*<Cursor/>*/}</Camera>
+        <Entity position={`11 0.5 0`} rotation={`0 90 0`}>
+          <Entity ref="camera" camera wasd-controls look-controls>
+            <Cursor />
+          </Entity>
 
           { !stairmaster ?
             <Entity position={`0 -10 -1`}>
