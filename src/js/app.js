@@ -52,10 +52,15 @@ class Ball extends React.Component {
   }
 }
 
+
 export class App extends React.Component {
   constructor(props) {
     super(props);
     let arenaSize = 15;
+
+    this.player = window.location.search.substr(1);
+
+    http://localhost:8080/?1
 
     this.tick = this.tick.bind(this);
 
@@ -65,13 +70,13 @@ export class App extends React.Component {
         depth: arenaSize
       },
       paddle1: {
-        pos: new THREE.Vector3(-arenaSize/2, 0, 0),
+        pos: new V3(-arenaSize/2, 0, 0),
         width: 1,
         height: 0.5,
         depth: 0.1
       },
       paddle2: {
-        pos: new THREE.Vector3(arenaSize/2, 0, 0),
+        pos: new V3(arenaSize/2, 0, 0),
         width: 1,
         height: 0.5,
         depth: 0.1
@@ -139,19 +144,23 @@ export class App extends React.Component {
     hitPaddle1();
     hitPaddle2();
 
+    const mypaddle = this.player === '1' ? paddle1 : paddle2;
+    console.log(mypaddle);
     // keyboard controls to move paddles
     const dPaddle = 10 * dt_seconds;
-    if (keys[38] && paddle1.pos.z - paddle1.width/2 >= -arena.width/2) {
-      this.state.paddle1.pos.z = paddle1.pos.z - dPaddle;
+    if (keys[38] && mypaddle.pos.z - mypaddle.width/2 >= -arena.width/2) {
+      mypaddle.pos.z -= dPaddle;
+      this.props.controller.onSendMyPaddlePosition(mypaddle.pos.z);
       //this.state.paddle2.pos.z = paddle2.pos.z + dPaddle;
     }
-    if (keys[40] && paddle1.pos.z + paddle1.width/2 <= arena.width/2) {
-      this.state.paddle1.pos.z = paddle1.pos.z + dPaddle;
+    if (keys[40] && mypaddle.pos.z + mypaddle.width/2 <= arena.width/2) {
+      mypaddle.pos.z += dPaddle;
+      this.props.controller.onSendMyPaddlePosition(mypaddle.pos.z);
       //this.state.paddle2.pos.z = paddle2.pos.z - dPaddle;
     }
 
     const w = this.state.arena.width / 2;
-    this.state.paddle2.pos.z = THREE.Math.clamp(paddleZ, -w, w);
+    mypaddle.pos.z = THREE.Math.clamp(paddleZ, -w, w);
 
     //hit wall
     if (ball.z - ball.r < -arena.width/2) {
