@@ -58,10 +58,6 @@ export class App extends React.Component {
     super(props);
     let arenaSize = 15;
 
-    this.player = window.location.search.substr(1);
-
-    http://localhost:8080/?1
-
     this.tick = this.tick.bind(this);
 
     this.state = {
@@ -109,16 +105,22 @@ export class App extends React.Component {
     this.millis = Date.now();
     let dt_seconds = (this.millis - prevMillis) / 1000;
 
+
+
+    let {velocity, ball, paddle1, paddle2, arena, keys} = this.state;
+    let {x, y, z, r, rotation} = ball;
+
+
+
+
     // ray casting
     let c = ReactDOM.findDOMNode(this.refs.camera);
     const p = c.components.camera.camera.getWorldPosition();
     const d = c.components.camera.camera.getWorldDirection();
     const ray = new THREE.Ray(p, d);
-    const plane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), this.state.arena.width / 2);
+    const plane = new THREE.Plane(new THREE.Vector3(this.props.player === '1' ? 1 : -1, 0, 0), this.state.arena.width / 2);
     const paddleZ = ray.intersectPlane(plane).z;
 
-    let {velocity, ball, paddle1, paddle2, arena, keys} = this.state;
-    let {x, y, z, r, rotation} = ball;
 
     let isCollision = paddle => Math.abs(paddle.pos.z - ball.z) < (paddle.width / 2 + ball.r);
 
@@ -144,18 +146,16 @@ export class App extends React.Component {
     hitPaddle1();
     hitPaddle2();
 
-    const mypaddle = this.player === '1' ? paddle1 : paddle2;
-    console.log(mypaddle);
+    const mypaddle = this.props.player === '1' ? paddle1 : paddle2;
+
     // keyboard controls to move paddles
     const dPaddle = 10 * dt_seconds;
     if (keys[38] && mypaddle.pos.z - mypaddle.width/2 >= -arena.width/2) {
       mypaddle.pos.z -= dPaddle;
-      this.props.controller.onSendMyPaddlePosition(mypaddle.pos.z);
       //this.state.paddle2.pos.z = paddle2.pos.z + dPaddle;
     }
     if (keys[40] && mypaddle.pos.z + mypaddle.width/2 <= arena.width/2) {
       mypaddle.pos.z += dPaddle;
-      this.props.controller.onSendMyPaddlePosition(mypaddle.pos.z);
       //this.state.paddle2.pos.z = paddle2.pos.z - dPaddle;
     }
 
@@ -191,6 +191,8 @@ export class App extends React.Component {
       this.state.velocity = velocity;
     }
 
+    this.props.controller.onSendMyPaddlePosition(mypaddle.pos.z);
+
     this.forceUpdate();
   }
 
@@ -200,7 +202,7 @@ export class App extends React.Component {
 
     return (
       <Scene onTick={this.tick}>
-        <Entity position={`11 0.5 0`} rotation={`0 90 0`}>
+        <Entity position={`${this.props.player === '1' ? -11 : 11} 0.5 0`} rotation={`0 ${this.props.player === '1' ? -90 : 90} 0`}>
           <Entity ref="camera" camera wasd-controls look-controls>
             <Cursor />
           </Entity>
@@ -219,12 +221,12 @@ export class App extends React.Component {
                 width={paddle1.width}
                 height={paddle1.height}
                 depth={paddle1.depth}
-                color="#faa"/>
+                color="#f00"/>
         <Paddle position={`${paddle2.pos.x} ${paddle2.pos.y} ${paddle2.pos.z}`}
                 width={paddle2.width}
                 height={paddle2.height}
                 depth={paddle2.depth}
-                color="#aaf"/>
+                color="#00f"/>
 
         <Ball position={`${x} ${y} ${z}`} rotation={`0 ${rotation} 0`} radius={r}/>
       </Scene>
